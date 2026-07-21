@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+  namespace: banking
+spec:
+  selector:
+    app: mailpit
+  ports:
+    - name: http
+      port: 8025
+      targetPort: 8025
+    - name: smtp
+      port: 1025
+      targetPort: 1025
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  namespace: banking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:latest
+          ports:
+            - containerPort: 8025
+            - containerPort: 1025
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 200m
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: banking
+data:
+  config.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 5s
+        send_batch_size: 512
+      memory_limiter:
+        check_interval: 2s
+        limit_mib: 256
+      resource/add_environment:
+        attributes:
+          - key: deployment.environment.name
+            value: ${DEPLOYMENT_ENVIRONMENT}
+            action: upsert
+          - key: deployment.environment
+            value: ${DEPLOYMENT_ENVIRONMENT}
+            action: upsert
+          - key: demo.name
+            value: banking-platform
+            action: upsert
+
+    exporters:
+      otlphttp/traces:
+        traces_endpoint: ${SPLUNK_INGEST_URL}/v2/trace/otlp
+        headers:
+          X-SF-Token: ${SPLUNK_ACCESS_TOKEN}
+      splunk_hec/o11y:
+        token: ${SPLUNK_ACCESS_TOKEN}
+        endpoint: ${SPLUNK_LOG_INGEST_URL}
+        source: banking-platform
+        sourcetype: otel
+      signalfx:
+        access_token: ${SPLUNK_ACCESS_TOKEN}
+        realm: ${SPLUNK_REALM}
+        ingest_url: ${SPLUNK_INGEST_URL}
+        api_url: ${SPLUNK_API_URL}
+      debug:
+        verbosity: basic
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/add_environment, batch]
+          exporters: [otlphttp/traces, debug]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/add_environment, batch]
+          exporters: [signalfx, debug]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/add_environment, batch]
+          exporters: [splunk_hec/o11y, debug]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: banking
+spec:
+  selector:
+    app: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+    - name: health
+      port: 13133
+      targetPort: 13133
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: banking
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.111.0
+          args: ["--config=/etc/otelcol/config.yaml"]
+          ports:
+            - containerPort: 4317
+            - containerPort: 4318
+            - containerPort: 13133
+          env:
+            - name: DEPLOYMENT_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: banking-config
+                  key: DEPLOYMENT_ENVIRONMENT
+            - name: SPLUNK_REALM
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_REALM
+            - name: SPLUNK_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_ACCESS_TOKEN
+            - name: SPLUNK_INGEST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_INGEST_URL
+            - name: SPLUNK_LOG_INGEST_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_LOG_INGEST_URL
+            - name: SPLUNK_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_API_URL
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config

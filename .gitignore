@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.splunk
+.env.*.local
+*.secrets
+.minikube-port-forward.pids
+*.log
+.DS_Store
+services/*/src/generated

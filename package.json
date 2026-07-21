@@ -1,0 +1,37 @@
+{
+  "name": "banking-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "frontend",
+    "tests"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:shared": "npm run build -w @banking/shared",
+    "dev:gateway": "npm run dev -w @banking/api-gateway",
+    "migrate:all": "bash scripts/migrate-all.sh",
+    "seed": "tsx scripts/seed-demo-data.ts",
+    "traffic": "tsx scripts/generate-demo-traffic.ts",
+    "flags": "tsx scripts/toggle-feature-flag.ts",
+  "minikube:up": "bash scripts/minikube-up.sh",
+  "minikube:down": "bash scripts/minikube-down.sh",
+  "minikube:build": "bash scripts/k8s-build-images.sh",
+  "minikube:seed": "bash scripts/minikube-seed.sh",
+  "minikube:port-forward": "bash scripts/minikube-port-forward.sh",
+    "docker:down": "docker compose down",
+    "docker:down:clean": "docker compose down -v",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/pg": "^8.11.10",
+    "axios": "^1.7.9",
+    "bcrypt": "^5.1.1",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: banking-config
+  namespace: banking
+data:
+  NODE_ENV: development
+  DEPLOYMENT_ENVIRONMENT: development
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: bank
+  MAIL_HOST: mailpit
+  MAIL_PORT: "1025"
+  FRONTEND_URL: http://localhost:5173
+  WORKSHOP_URL: http://localhost:8090
+  VITE_API_URL: /api
+  VITE_PROXY_TARGET: http://api-gateway:8080
+  VITE_SPLUNK_REALM: us1
+  VITE_SPLUNK_RUM_ACCESS_TOKEN: ""
+  VITE_DEPLOYMENT_ENVIRONMENT: banking-app
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  OTEL_SDK_DISABLED: "false"
+  OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=development,deployment.environment=development,service.namespace=securebank,demo.name=banking-platform
+  AUTH_SERVICE_URL: http://auth-service:3001
+  USER_SERVICE_URL: http://user-service:3002
+  ACCOUNT_SERVICE_URL: http://account-service:3003
+  TRANSACTION_SERVICE_URL: http://transaction-service:3004
+  CREDIT_CARD_SERVICE_URL: http://credit-card-service:3005
+  LOAN_SERVICE_URL: http://loan-service:3006
+  DOCUMENT_SERVICE_URL: http://document-service:3007
+  NOTIFICATION_SERVICE_URL: http://notification-service:3008
+  ADMIN_SERVICE_URL: http://admin-service:3009

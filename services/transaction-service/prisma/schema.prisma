@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String
+  status        String   @default("PENDING")
+  amount        Float
+  currency      String   @default("USD")
+  fromAccountId String?
+  toAccountId   String?
+  payeeName     String?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model ScheduledTransfer {
+  id            String   @id @default(uuid())
+  userId        String
+  fromAccountId String
+  toAccountId   String
+  amount        Float
+  frequency     String
+  nextRunAt     DateTime
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([nextRunAt, active])
+}
+
+model Payee {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  accountNumber String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

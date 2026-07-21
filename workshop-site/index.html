@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto" data-theme-mode="auto">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#FF007F" />
+  <title>SecureBank Workshop — Splunk Observability + ITSI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="#overview">
+        <span class="brand__mark">splunk&gt;</span>
+        <span class="brand__tag">securebank lab</span>
+      </a>
+      <div class="header-actions">
+        <a class="header-doc-link" href="https://help.splunk.com/en/splunk-observability-cloud" target="_blank" rel="noopener">Splunk O11y docs</a>
+        <a class="header-doc-link" href="https://docs.splunk.com/Documentation/ITSI" target="_blank" rel="noopener">ITSI docs</a>
+        <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="progress" aria-hidden="true"><div class="progress__bar" id="progressBar"></div></div>
+
+  <div class="page">
+    <aside class="sidebar" aria-label="Lab steps">
+      <p class="sidebar__sub">Workshop</p>
+      <p class="sidebar__hint">Follow each step in order. Styled with the <a href="https://github.com/splunk/hugo-theme-splunk-workshop" target="_blank" rel="noopener">Splunk Workshop Theme</a>.</p>
+      <ul class="sidebar-tree">
+        <li class="sidebar-tree__item"><a href="#overview" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Overview</a></li>
+        <li class="sidebar-tree__item"><a href="#concepts" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Concepts 101</a></li>
+        <li class="sidebar-tree__item"><a href="#commands" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> All commands</a></li>
+        <li class="sidebar-tree__item"><a href="#prereqs" class="sidebar-tree__link" data-step="1"><span class="sidebar-tree__num">1</span> Prerequisites</a></li>
+        <li class="sidebar-tree__item"><a href="#step-start" class="sidebar-tree__link" data-step="2"><span class="sidebar-tree__num">2</span> Start platform</a></li>
+        <li class="sidebar-tree__item"><a href="#step-walkthrough" class="sidebar-tree__link" data-step="3"><span class="sidebar-tree__num">3</span> App walkthrough</a></li>
+        <li class="sidebar-tree__item"><a href="#step-logging" class="sidebar-tree__link" data-step="4"><span class="sidebar-tree__num">4</span> Structured logging</a></li>
+        <li class="sidebar-tree__item"><a href="#step-flags" class="sidebar-tree__link" data-step="5"><span class="sidebar-tree__num">5</span> Feature flags</a></li>
+        <li class="sidebar-tree__item"><a href="#step-otel" class="sidebar-tree__link" data-step="6"><span class="sidebar-tree__num">6</span> OTEL setup</a></li>
+        <li class="sidebar-tree__item"><a href="#step-o11y" class="sidebar-tree__link" data-step="7"><span class="sidebar-tree__num">7</span> O11y demo</a></li>
+        <li class="sidebar-tree__item"><a href="#step-itsi-concepts" class="sidebar-tree__link" data-step="8"><span class="sidebar-tree__num">8</span> ITSI concepts</a></li>
+        <li class="sidebar-tree__item"><a href="#step-itsi-lab" class="sidebar-tree__link" data-step="9"><span class="sidebar-tree__num">9</span> ITSI optional lab</a></li>
+        <li class="sidebar-tree__item"><a href="#troubleshoot" class="sidebar-tree__link" data-step="10"><span class="sidebar-tree__num">?</span> Troubleshooting</a></li>
+        <li class="sidebar-tree__item"><a href="#wrapup" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Teardown &amp; wrap-up</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="WORKSHOP_GUIDE.md">Facilitator guide</a> ·
+        <a href="https://github.com/splunk/hugo-theme-splunk-workshop" target="_blank" rel="noopener">Theme on GitHub</a>
+      </div>
+    </aside>
+
+    <main class="prose" id="content">
+      <header class="hero" id="overview">
+        <p class="eyebrow">Hands-on lab · ~75–90 minutes · O11y + optional ITSI</p>
+        <h1>SecureBank Banking Platform Workshop</h1>
+        <p class="lead">
+          A 10-microservice React + Node.js banking demo with PostgreSQL, structured JSON logging,
+          OpenTelemetry instrumentation, and admin-controlled feature flags — wired for
+          <strong>Splunk Observability Cloud</strong> with an optional
+          <strong>Splunk IT Service Intelligence (ITSI)</strong> integration module.
+        </p>
+        <div class="callout callout--concept">
+          <p class="callout__title">Who this lab is for</p>
+          <div class="callout__body">
+            <p>Splunk practitioners who want a realistic microservices demo: traces, RUM, logs, metrics, failure injection, and (optionally) how O11y alerts become ITSI episodes for service-centric incident response.</p>
+          </div>
+        </div>
+        <div class="callout callout--info">
+          <p class="callout__title">What you'll learn</p>
+          <div class="callout__body">
+            <p>How logs, traces, and metrics flow from microservices through the OTel Collector into Splunk O11y; how to demo the service map with business traffic; and how ITSI maps those signals to business services, KPIs, and episodes.</p>
+          </div>
+        </div>
+
+        <div id="flagDemoPanel" class="flag-demo" aria-live="polite">
+          <div class="flag-demo__header">
+            <h2 class="flag-demo__title">Live demo controls</h2>
+            <span id="flagDemoStatus" class="flag-demo__badge flag-demo__badge--ok">Errors off</span>
+          </div>
+          <p class="flag-demo__desc">Toggle simulated database failures without leaving this page. After triggering, try a transfer in the app as Alice to see the 503 error and ERROR logs in Splunk (and optional ITSI notables).</p>
+          <div class="flag-demo__row">
+            <label class="flag-demo__label" for="flagDemoSelect">Failure type</label>
+            <select id="flagDemoSelect" class="flag-demo__select">
+              <option value="fail_transaction_insert">Transfers &amp; bill pay</option>
+              <option value="fail_account_insert">Account creation</option>
+              <option value="fail_notification_insert">Notifications</option>
+              <option value="fail_card_application_insert">Credit card applications</option>
+              <option value="fail_loan_application_insert">Loan applications</option>
+            </select>
+          </div>
+          <div class="flag-demo__actions">
+            <button type="button" id="flagDemoTrigger" class="btn-demo btn-demo--danger">Trigger errors</button>
+            <button type="button" id="flagDemoClear" class="btn-demo btn-demo--safe">Turn off errors</button>
+          </div>
+          <p id="flagDemoMessage" class="flag-demo__message"></p>
+        </div>
+      </header>
+
+      <section>
+        <h2>Architecture</h2>
+        <div class="flow-diagram" role="img" aria-label="SecureBank to Splunk data flow">
+          <div class="flow-node">
+            <div class="flow-title">React SPA</div>
+            <div class="flow-sub">Splunk RUM</div>
+          </div>
+          <div class="flow-arrow"><span>→</span></div>
+          <div class="flow-node">
+            <div class="flow-title">API Gateway</div>
+            <div class="flow-sub">JWT + proxy</div>
+          </div>
+          <div class="flow-arrow"><span>→</span></div>
+          <div class="flow-node flow-node-accent">
+            <div class="flow-title">Microservices</div>
+            <div class="flow-sub">10 services + Postgres</div>
+            <div class="flow-pipes">
+              <span>OTLP traces/metrics/logs</span>
+            </div>
+          </div>
+          <div class="flow-arrow"><span>→</span></div>
+          <div class="flow-node">
+            <div class="flow-title">OTel Collector</div>
+            <div class="flow-sub">4317 / 4318</div>
+          </div>
+          <div class="flow-arrow"><span>→</span></div>
+          <div class="flow-node">
+            <div class="flow-title">Splunk O11y</div>
+            <div class="flow-sub">APM · RUM · Log Observer</div>
+          </div>
+        </div>
+        <p class="muted">Optional: O11y detectors → Splunk Platform HEC → ITSI notables → episodes (Step 9)</p>
+        <table class="info-table">
+          <tr><th>Frontend</th><td><a href="http://localhost:5173">http://localhost:5173</a></td></tr>
+          <tr><th>API Gateway</th><td><a href="http://localhost:8080/health">http://localhost:8080</a></td></tr>
+          <tr><th>Workshop site</th><td><a href="http://localhost:8090">http://localhost:8090</a></td></tr>
+          <tr><th>Mailpit (email)</th><td><a href="http://localhost:8025">http://localhost:8025</a></td></tr>
+          <tr><th>APM environment</th><td><code>banking-app</code></td></tr>
+          <tr><th>Demo admin</th><td><code>admin@bank.demo</code> / <code>Demo1234!</code></td></tr>
+          <tr><th>Demo customer</th><td><code>alice@bank.demo</code> / <code>Demo1234!</code></td></tr>
+        </table>
+      </section>
+
+      <section id="concepts">
+        <h2>Concepts 101 — Splunk O11y &amp; ITSI</h2>
+        <p>This lab uses <strong>Splunk Observability Cloud</strong> for application telemetry and optionally <strong>ITSI</strong> for service-centric correlation and business impact. Start here if you are new to the full stack.</p>
+
+        <h3>O11y signal mapping</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>Signal</th><th>Where in SecureBank</th><th>Splunk UI</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Traces</td><td>Every HTTP call between services</td><td>APM → Traces / Service map</td></tr>
+            <tr><td>Metrics</td><td>HTTP duration, request counts</td><td>APM → Metrics / Detectors</td></tr>
+            <tr><td>Logs</td><td>JSON stdout from each service</td><td>Log Observer (not Platform Search)</td></tr>
+            <tr><td>RUM</td><td>Browser sessions on the React SPA</td><td>RUM → <code>securebank-frontend</code></td></tr>
+            <tr><td>Environment</td><td><code>DEPLOYMENT_ENVIRONMENT=banking-app</code></td><td>APM / RUM environment filter</td></tr>
+          </tbody>
+        </table>
+
+        <h3>O11y → ITSI term mapping</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>If you know O11y…</th><th>ITSI term</th><th>SecureBank example</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>APM service</td><td><strong>Entity</strong></td><td><code>transaction-service</code>, <code>api-gateway</code></td></tr>
+            <tr><td>User journey / workflow</td><td><strong>Business service</strong></td><td>SecureBank Funds Transfer</td></tr>
+            <tr><td>Detector alert</td><td><strong>Notable event</strong></td><td>503 spike on transfers</td></tr>
+            <tr><td>Correlated alerts</td><td><strong>Episode</strong></td><td>Flag failures + downstream errors</td></tr>
+            <tr><td>Service health</td><td><strong>KPI / health score</strong></td><td>Transfer success %, p90 latency</td></tr>
+            <tr><td><code>deployment.environment:banking-app</code></td><td><strong>Scope filter</strong></td><td>Same env in O11y and ITSI views</td></tr>
+          </tbody>
+        </table>
+
+        <div class="callout callout--concept">
+          <p class="callout__title">Why ITSI on top of APM?</p>
+          <div class="callout__body">
+            <p>APM shows <em>what</em> broke in code and infrastructure. ITSI shows <em>business impact</em>: which customer-facing service is degraded, how KPIs roll up through dependencies, and how related alerts form an episode for faster MTTR. ITSI does not replace traces or logs — it correlates them at the service layer.</p>
+          </div>
+        </div>
+
+        <div class="callout callout--info">
+          <p class="callout__title">Frontend vs APM service map</p>
+          <div class="callout__body">
+            <p>The browser appears in <strong>RUM</strong> (<code>securebank-frontend</code>), not as an APM microservice node. Open a RUM session → <strong>View related trace</strong> to jump to backend APM via the <code>Server-Timing</code> header.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="commands">
+        <h2>All commands (cheat sheet)</h2>
+        <div class="code-block">
+          <div class="code-block__header"><span>Docker Compose — start</span><button class="btn-copy" data-copy="cmd-all-docker">Copy</button></div>
+          <pre><code id="cmd-all-docker">cd ~/projects/banking-platform
+cp .env.example .env
+cp .env.splunk.example .env.splunk   # add ingest + RUM tokens
+docker compose up --build -d
+npm install && npm run seed</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Minikube — start</span><button class="btn-copy" data-copy="cmd-all-k8s">Copy</button></div>
+          <pre><code id="cmd-all-k8s">cd ~/projects/banking-platform
+npm run minikube:up
+npm run minikube:port-forward</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Traffic + flags</span><button class="btn-copy" data-copy="cmd-all-traffic">Copy</button></div>
+          <pre><code id="cmd-all-traffic">npm run traffic
+npm run flags -- list
+npm run flags -- enable fail_transaction_insert
+npm run flags -- disable fail_transaction_insert</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Teardown</span><button class="btn-copy" data-copy="cmd-all-down">Copy</button></div>
+          <pre><code id="cmd-all-down">docker compose down              # stop Docker stack
+npm run minikube:port-forward -- stop
+npm run minikube:down            # remove K8s banking namespace</code></pre>
+        </div>
+      </section>
+
+      <section id="prereqs">
+        <div class="step-meta"><span class="step-badge">Step 1</span><span class="step-time">~3 min</span></div>
+        <h2>Prerequisites</h2>
+        <ul class="checklist">
+          <li><strong>Docker Desktop</strong> (or Docker Engine) for Compose path</li>
+          <li><strong>Node.js 20+</strong> and npm for seed, traffic, and flags scripts</li>
+          <li><strong>Splunk Observability Cloud</strong> ingest token (Organization Settings → Access Tokens)</li>
+          <li><strong>Splunk RUM</strong> public token in <code>.env.splunk</code> as <code>SPLUNK_RUM_ACCESS_TOKEN</code></li>
+          <li><strong>Minikube</strong> (optional) — 6 GB RAM recommended; <code>npm run minikube:up</code></li>
+          <li><strong>ITSI</strong> (optional, Step 9) — Splunk Enterprise or Cloud with ITSI licensed</li>
+        </ul>
+        <p>Ports used: <code>5173</code> (app), <code>8080</code> (API), <code>8090</code> (workshop), <code>8025</code> (mail), <code>4317/4318</code> (OTel).</p>
+        <div class="callout callout--tip">
+          <p class="callout__title">Lab root</p>
+          <div class="callout__body">
+            <p>Clone or copy the repo anywhere; replace <code>~/projects/banking-platform</code> with your path in commands below.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-start">
+        <div class="step-meta"><span class="step-badge">Step 2</span><span class="step-time">~10 min</span></div>
+        <h2>Start the platform</h2>
+        <p>Choose <strong>one</strong> path. Do not run Docker Compose and Minikube at the same time — they share ports.</p>
+
+        <div class="deploy-tabs" role="tablist" aria-label="Deployment path">
+          <button type="button" class="deploy-tab is-active" role="tab" aria-selected="true" data-deploy-tab="docker">Docker Compose</button>
+          <button type="button" class="deploy-tab" role="tab" aria-selected="false" data-deploy-tab="minikube">Minikube</button>
+        </div>
+
+        <div class="deploy-panel is-active" id="deploy-docker" role="tabpanel">
+          <div class="code-block">
+            <div class="code-block__header"><span>Terminal</span><button class="btn-copy" data-copy="cmd-1">Copy</button></div>
+            <pre><code id="cmd-1">cd ~/projects/banking-platform
+cp .env.example .env
+docker compose up --build -d
+npm install && npm run seed</code></pre>
+          </div>
+          <p>Verify health:</p>
+          <div class="code-block">
+            <div class="code-block__header"><span>Health check</span><button class="btn-copy" data-copy="cmd-1b">Copy</button></div>
+            <pre><code id="cmd-1b">curl http://localhost:8080/health
+curl http://localhost:13133</code></pre>
+          </div>
+          <p class="success-line">Expected: <code>{"status":"ok","service":"api-gateway"}</code></p>
+        </div>
+
+        <div class="deploy-panel" id="deploy-minikube" role="tabpanel" hidden>
+          <div class="code-block">
+            <div class="code-block__header"><span>Minikube deploy</span><button class="btn-copy" data-copy="cmd-1k">Copy</button></div>
+            <pre><code id="cmd-1k">cd ~/projects/banking-platform
+npm run minikube:up
+npm run minikube:port-forward</code></pre>
+          </div>
+          <p>Check pods:</p>
+          <div class="code-block">
+            <pre><code>kubectl -n banking get pods
+kubectl -n banking get configmap banking-config -o jsonpath='{.data.DEPLOYMENT_ENVIRONMENT}{"\n"}'</code></pre>
+          </div>
+          <p class="success-line">Expected environment: <code>banking-app</code></p>
+          <div class="callout callout--info">
+            <p class="callout__title">Secrets</p>
+            <div class="callout__body">
+              <p>Minikube loads Splunk tokens from <code>.env.splunk</code> via <code>scripts/k8s-create-secrets.sh</code>. Re-run after updating tokens.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="step-walkthrough">
+        <div class="step-meta"><span class="step-badge">Step 3</span><span class="step-time">~10 min</span></div>
+        <h2>Application walkthrough</h2>
+        <div class="callout callout--concept">
+          <p class="callout__title">Demo the business flow first</p>
+          <div class="callout__body">
+            <p>For a realistic APM service map, prioritize <strong>transfers and account views</strong> — not admin pages. Admin UI traffic legitimately centers the map on <code>admin-service</code>.</p>
+          </div>
+        </div>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Open <strong>http://localhost:5173</strong> and log in as <code>alice@bank.demo</code> / <code>Demo1234!</code></li>
+            <li>View <strong>Dashboard</strong> — checking + savings balances</li>
+            <li><strong>Transfer funds</strong> between checking and savings (key path for service map demo)</li>
+            <li>View <strong>Transactions</strong> and <strong>Notifications</strong></li>
+            <li>Optional: upload documents, apply for card/loan; log in as <code>admin@bank.demo</code> to approve</li>
+          </ol>
+        </article>
+        <table class="info-table">
+          <tr><th>Persona</th><th>Email</th><th>Use for</th></tr>
+          <tr><td>Customer</td><td><code>alice@bank.demo</code></td><td>Transfers, RUM sessions, business traffic</td></tr>
+          <tr><td>Admin</td><td><code>admin@bank.demo</code></td><td>Feature flags, approvals, admin service map</td></tr>
+        </table>
+        <div class="callout callout--tip">
+          Microservices: auth, user, account, transaction, credit-card, loan, document, notification, admin — each with its own PostgreSQL database.
+        </div>
+      </section>
+
+      <section id="step-logging">
+        <div class="step-meta"><span class="step-badge">Step 4</span><span class="step-time">~5 min</span></div>
+        <h2>Structured logging for Splunk</h2>
+        <p>Every service emits single-line JSON logs with Splunk-compatible severity fields:</p>
+        <div class="code-block">
+          <pre><code>{
+  "timestamp": "2026-06-18T12:00:00.000Z",
+  "severityText": "INFO",
+  "severityNumber": 9,
+  "body": "GET /accounts/ 200",
+  "service.name": "account-service",
+  "deployment.environment": "banking-app",
+  "correlation_id": "uuid-here",
+  "trace_id": "abc123...",
+  "span_id": "def456...",
+  "http_method": "GET",
+  "http_route": "/",
+  "http_status": 200,
+  "duration_ms": 12
+}</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Docker logs</span><button class="btn-copy" data-copy="cmd-3">Copy</button></div>
+          <pre><code id="cmd-3">docker compose logs -f transaction-service | jq .
+docker compose logs -f transaction-service | jq 'select(.severityText == "ERROR")'
+
+# Minikube
+kubectl -n banking logs deploy/transaction-service --since=5m | jq .</code></pre>
+        </div>
+        <div class="callout callout--info">
+          In Log Observer: <code>deployment.environment:banking-app severityText:ERROR</code> or <code>service.name:transaction-service</code>
+        </div>
+      </section>
+
+      <section id="step-flags">
+        <div class="step-meta"><span class="step-badge">Step 5</span><span class="step-time">~8 min</span></div>
+        <h2>Feature flags — failure injection</h2>
+        <p>Admin-controlled flags simulate database insert failures for observability and ITSI episode demos.</p>
+        <div id="flagDemoPanelStep4" class="flag-demo flag-demo--compact" aria-live="polite">
+          <div class="flag-demo__header">
+            <h3 class="flag-demo__title">Quick controls</h3>
+            <span id="flagDemoStatusStep4" class="flag-demo__badge flag-demo__badge--ok">Errors off</span>
+          </div>
+          <div class="flag-demo__row">
+            <label class="flag-demo__label" for="flagDemoSelectStep4">Failure type</label>
+            <select id="flagDemoSelectStep4" class="flag-demo__select">
+              <option value="fail_transaction_insert">Transfers &amp; bill pay</option>
+              <option value="fail_account_insert">Account creation</option>
+              <option value="fail_notification_insert">Notifications</option>
+              <option value="fail_card_application_insert">Credit card applications</option>
+              <option value="fail_loan_application_insert">Loan applications</option>
+            </select>
+          </div>
+          <div class="flag-demo__actions">
+            <button type="button" id="flagDemoTriggerStep4" class="btn-demo btn-demo--danger">Trigger errors</button>
+            <button type="button" id="flagDemoClearStep4" class="btn-demo btn-demo--safe">Turn off errors</button>
+          </div>
+          <p id="flagDemoMessageStep4" class="flag-demo__message"></p>
+        </div>
+        <table class="info-table">
+          <tr><th>Flag</th><th>Effect</th></tr>
+          <tr><td><code>fail_transaction_insert</code></td><td>Blocks transfers and bill pay → HTTP 503</td></tr>
+          <tr><td><code>fail_account_insert</code></td><td>Blocks new account creation</td></tr>
+          <tr><td><code>fail_notification_insert</code></td><td>Blocks notification creation</td></tr>
+        </table>
+        <div class="code-block">
+          <div class="code-block__header"><span>CLI</span><button class="btn-copy" data-copy="cmd-4">Copy</button></div>
+          <pre><code id="cmd-4">npm run flags -- list
+npm run flags -- enable fail_transaction_insert
+npm run flags -- disable fail_transaction_insert</code></pre>
+        </div>
+        <div class="callout callout--warning">
+          When enabled, the API returns HTTP 503 with <code>code: FEATURE_FLAG_BLOCKED</code> and logs an ERROR with <code>feature_flag</code> in the JSON payload — ideal for O11y detectors and ITSI notables.
+        </div>
+      </section>
+
+      <section id="step-otel">
+        <div class="step-meta"><span class="step-badge">Step 6</span><span class="step-time">~10 min</span></div>
+        <h2>OpenTelemetry → Splunk setup</h2>
+        <div class="callout callout--info">
+          Services auto-instrument Express/HTTP and export OTLP to the collector at <code>otel-collector:4318</code>. Environment tag: <code>banking-app</code>.
+        </div>
+        <h3>1. Configure Splunk credentials</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Terminal</span><button class="btn-copy" data-copy="cmd-5a">Copy</button></div>
+          <pre><code id="cmd-5a">cp .env.splunk.example .env.splunk
+# Edit: SPLUNK_ACCESS_TOKEN, SPLUNK_RUM_ACCESS_TOKEN, SPLUNK_REALM</code></pre>
+        </div>
+        <h3>2. Restart collector (Docker)</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Terminal</span><button class="btn-copy" data-copy="cmd-5b">Copy</button></div>
+          <pre><code id="cmd-5b">export $(grep -v '^#' .env.splunk | xargs)
+docker compose up -d --force-recreate otel-collector
+docker compose restart api-gateway transaction-service account-service</code></pre>
+        </div>
+        <h3>3. Generate business traffic</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Traffic script</span><button class="btn-copy" data-copy="cmd-5c">Copy</button></div>
+          <pre><code id="cmd-5c">npm run traffic
+# Or transfer funds in the UI as alice@bank.demo</code></pre>
+        </div>
+        <p>Collector pipeline (<code>collector/otelcol-config.yaml</code>):</p>
+        <ul>
+          <li><strong>Traces</strong> → <code>${SPLUNK_INGEST_URL}/v2/trace/otlp</code></li>
+          <li><strong>Metrics</strong> → SignalFx exporter</li>
+          <li><strong>Logs</strong> → <code>${SPLUNK_INGEST_URL}/v1/log</code> (Log Observer)</li>
+        </ul>
+      </section>
+
+      <section id="step-o11y">
+        <div class="step-meta"><span class="step-badge">Step 7</span><span class="step-time">~15 min</span></div>
+        <h2>Splunk Observability Cloud demo</h2>
+        <p>Filter environment to <strong><code>banking-app</code></strong> in APM and RUM before exploring.</p>
+
+        <h3>1. APM service map</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Run <code>npm run traffic</code> or complete a UI transfer (not admin pages only)</li>
+            <li>Wait 2–3 minutes, then open <strong>APM → Service map</strong></li>
+            <li>Expected: <code>api-gateway → auth-service | account-service | transaction-service</code></li>
+            <li>Transfers continue: <code>transaction-service → account-service → notification-service</code></li>
+            <li>PostgreSQL appears as a <strong>database dependency</strong> under each service, not a separate microservice box</li>
+          </ol>
+        </article>
+        <div class="callout callout--concept">
+          <p class="callout__title">Admin hub vs business flow</p>
+          <div class="callout__body">
+            <p>Browsing <strong>Admin → Feature Flags / Dashboard</strong> centers the map on <code>admin-service</code> — that is expected. For the business-flow demo, use transfers or <code>npm run traffic</code>.</p>
+          </div>
+        </div>
+
+        <h3>2. RUM → APM trace link</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li><strong>RUM</strong> → application <code>securebank-frontend</code>, environment <code>banking-app</code></li>
+            <li>Open a session after a transfer in the UI</li>
+            <li>Click <strong>View related trace</strong> → jumps to APM through <code>api-gateway</code></li>
+            <li>DevTools → Network → <code>/api/*</code> responses include <code>Server-Timing: traceparent;desc="00-..."</code></li>
+          </ol>
+        </article>
+
+        <h3>3. Logs and failure demo</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Trigger <code>fail_transaction_insert</code> from this page or Admin UI</li>
+            <li>Attempt a transfer — 503 in UI</li>
+            <li>Log Observer: <code>deployment.environment:banking-app severityText:ERROR</code></li>
+            <li>APM trace: open the failed transfer span, follow ERROR log correlation</li>
+          </ol>
+        </article>
+
+        <table class="info-table">
+          <tr><th>Filter</th><th>Purpose</th></tr>
+          <tr><td><code>service.name:transaction-service</code></td><td>Transfer service only</td></tr>
+          <tr><td><code>deployment.environment:banking-app</code></td><td>APM / RUM environment</td></tr>
+          <tr><td><code>application:securebank-frontend</code></td><td>RUM application</td></tr>
+          <tr><td><code>service.namespace:securebank</code></td><td>All demo services</td></tr>
+          <tr><td><code>http_status:503</code></td><td>Feature flag responses</td></tr>
+        </table>
+      </section>
+
+      <section id="step-itsi-concepts">
+        <div class="step-meta"><span class="step-badge">Step 8</span><span class="step-time">~10 min</span></div>
+        <h2>ITSI concepts — SecureBank mapping</h2>
+        <p>ITSI sits on Splunk Platform and correlates signals from O11y (and other sources) into <strong>service health</strong> and <strong>episodes</strong>.</p>
+
+        <h3>End-to-end flow</h3>
+        <div class="flow-diagram" role="img" aria-label="O11y to ITSI flow">
+          <div class="flow-node">
+            <div class="flow-title">SecureBank app</div>
+            <div class="flow-sub">transfers, flags</div>
+          </div>
+          <div class="flow-arrow"><span>OTLP</span></div>
+          <div class="flow-node">
+            <div class="flow-title">Splunk O11y</div>
+            <div class="flow-sub">traces · metrics · logs</div>
+          </div>
+          <div class="flow-arrow"><span>detector</span></div>
+          <div class="flow-node">
+            <div class="flow-title">Webhook → HEC</div>
+            <div class="flow-sub">Splunk Platform</div>
+          </div>
+          <div class="flow-arrow"><span>ingest</span></div>
+          <div class="flow-node flow-node-accent">
+            <div class="flow-title">ITSI</div>
+            <div class="flow-sub">notables · episodes · KPIs</div>
+          </div>
+        </div>
+
+        <h3>SecureBank ITSI model (recommended)</h3>
+        <table class="info-table">
+          <tr><th>ITSI object</th><th>SecureBank mapping</th></tr>
+          <tr><td>Business service</td><td><strong>SecureBank Digital Banking</strong> (parent) with child <strong>Funds Transfer</strong></td></tr>
+          <tr><td>Entities</td><td><code>api-gateway</code>, <code>transaction-service</code>, <code>account-service</code> (from APM)</td></tr>
+          <tr><td>KPIs</td><td>Transfer error rate, p90 latency, availability (from O11y metrics)</td></tr>
+          <tr><td>Notable events</td><td>O11y detector fires on 503 / error rate → HEC payload</td></tr>
+          <tr><td>Episodes</td><td>Correlated notables when feature flag causes cascading failures</td></tr>
+        </table>
+
+        <div class="callout callout--concept">
+          <p class="callout__title">O11y vs ITSI — complementary roles</p>
+          <div class="callout__body">
+            <ul>
+              <li><strong>O11y</strong> — deep dive: span-level debugging, RUM sessions, service map, detectors</li>
+              <li><strong>ITSI</strong> — service lens: health scores, dependency impact, episode management, glass table</li>
+              <li>Use O11y to find the broken span; use ITSI to communicate business impact and coordinate response</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>Official docs: <a href="https://docs.splunk.com/Documentation/ITSI/4.19.0/ServiceInsights/AboutServices" target="_blank" rel="noopener">ITSI services</a> · <a href="https://docs.splunk.com/Documentation/ITSI/4.19.0/Episodes/About" target="_blank" rel="noopener">Episodes</a> · <a href="https://help.splunk.com/en/splunk-observability-cloud/alert-detect-and-troubleshoot/detectors-and-alerts/create-detectors" target="_blank" rel="noopener">O11y detectors</a></p>
+      </section>
+
+      <section id="step-itsi-lab">
+        <div class="step-meta"><span class="step-badge">Step 9</span><span class="step-time">~20 min · optional</span></div>
+        <h2>ITSI optional hands-on lab</h2>
+        <div class="callout callout--warning">
+          <p class="callout__title">Requires ITSI</p>
+          <div class="callout__body">
+            <p>Skip this step if ITSI is not available. Facilitators can walk through concepts (Step 8) and show the O11y failure demo instead. See <a href="WORKSHOP_GUIDE.md">WORKSHOP_GUIDE.md</a> for talking points.</p>
+          </div>
+        </div>
+
+        <h3>1. Create an O11y-linked ITSI service</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>ITSI → <strong>Configuration → Services → Create New Service</strong></li>
+            <li>Title: <strong>SecureBank Funds Transfer</strong></li>
+            <li>Template: <strong>Splunk APM Business Workflow KPIs</strong> (or link entities manually)</li>
+            <li>Entity search: <code>service.name:transaction-service</code> with <code>deployment.environment:banking-app</code></li>
+            <li>Enable service and backfill KPIs (7 days default)</li>
+          </ol>
+        </article>
+
+        <h3>2. Create an O11y detector</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>O11y → <strong>Detectors &amp; SLOs → New Detector</strong></li>
+            <li>Signal: error count or 503 rate on <code>transaction-service</code></li>
+            <li>Filter: <code>deployment.environment:banking-app</code></li>
+            <li>Threshold: alert when errors exceed baseline during demo</li>
+          </ol>
+        </article>
+
+        <h3>3. Wire detector → ITSI (HEC webhook)</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Splunk Platform → <strong>Settings → Data Inputs → HTTP Event Collector</strong> → New token (e.g. <code>o11y_alerts_for_itsi</code>)</li>
+            <li>O11y → <strong>Data Management → Integrations → Splunk platform</strong> → add HEC URL + token</li>
+            <li>Edit detector → <strong>Alert Recipients → Splunk platform</strong> → select integration for Critical/Warning</li>
+          </ol>
+        </article>
+
+        <h3>4. Demo correlation</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Ensure baseline traffic: <code>npm run traffic</code></li>
+            <li>Click <strong>Trigger errors</strong> on this page (<code>fail_transaction_insert</code>)</li>
+            <li>Attempt transfers — 503 errors flow to O11y</li>
+            <li>Detector fires → notable event in ITSI</li>
+            <li>ITSI → <strong>Episode Review</strong> or <strong>Service Analyzer</strong> — see degraded Funds Transfer health</li>
+            <li>Click <strong>Turn off errors</strong> — KPIs recover after cache TTL (~60s)</li>
+          </ol>
+        </article>
+
+        <div class="code-block">
+          <div class="code-block__header"><span>Validate in Splunk Platform (index varies by org)</span></div>
+          <pre><code>index=itsi_event_management OR index=main sourcetype=o11y:itsi:alert
+| search service.name=transaction-service OR title=*transfer*</code></pre>
+        </div>
+
+        <div class="callout callout--tip">
+          <p class="callout__title">Screenshots</p>
+          <div class="callout__body">
+            <p>Add org-specific screenshots to <code>workshop-site/assets/</code> for Service Analyzer and Episode Review (placeholder folder for facilitators).</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="troubleshoot">
+        <div class="step-meta"><span class="step-badge">Reference</span></div>
+        <h2>Troubleshooting</h2>
+        <div class="trouble-grid">
+          <details>
+            <summary>Nothing in Splunk APM or service map</summary>
+            <p>Look in <strong>APM → Services</strong>, not Infrastructure. Filter environment <code>banking-app</code>.</p>
+            <pre><code>docker inspect banking-platform-otel-collector-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep SPLUNK_ACCESS_TOKEN
+npm run traffic
+kubectl -n banking logs deploy/otel-collector --since=5m | grep -i trace</code></pre>
+            <p>Admin-only traffic centers the map on <code>admin-service</code>. Use transfers for business topology.</p>
+          </details>
+          <details>
+            <summary>No logs in Log Observer (404 on export)</summary>
+            <p>Log Observer does not use a Platform index. Use ingest token; try <code>SPLUNK_LOG_INGEST_URL</code> in <code>.env.splunk</code>.</p>
+            <pre><code>kubectl -n banking logs deploy/otel-collector --since=5m | grep -iE 'LogsExporter|404'</code></pre>
+          </details>
+          <details>
+            <summary>RUM sessions not appearing</summary>
+            <p>Set <code>SPLUNK_RUM_ACCESS_TOKEN</code> in <code>.env.splunk</code> and restart frontend. Verify <code>VITE_DEPLOYMENT_ENVIRONMENT=banking-app</code>.</p>
+          </details>
+          <details>
+            <summary>ITSI notables not arriving</summary>
+            <p>Verify HEC token, index permissions, and Splunk platform integration in O11y. Test with a manual detector fire. Index name varies — ask your Splunk admin.</p>
+          </details>
+          <details>
+            <summary>Feature flag has no effect</summary>
+            <p>Flags cache for 60 seconds. Wait after toggling. Verify admin-service is running.</p>
+          </details>
+          <details>
+            <summary>Port-forward / connection refused</summary>
+            <p>Run <code>npm run minikube:port-forward</code> in the same session as <code>npm run traffic</code>.</p>
+          </details>
+        </div>
+      </section>
+
+      <section id="wrapup">
+        <div class="step-meta"><span class="step-badge">Wrap-up</span><span class="step-time">~5 min</span></div>
+        <h2>Teardown &amp; learning outcomes</h2>
+
+        <h3>Before you stop</h3>
+        <ul class="checklist">
+          <li>Click <strong>Turn off errors</strong> on this page</li>
+          <li>Stop port-forwards: <code>npm run minikube:port-forward -- stop</code></li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-block__header"><span>Docker teardown</span><button class="btn-copy" data-copy="cmd-8a">Copy</button></div>
+          <pre><code id="cmd-8a">docker compose down
+docker compose down -v   # full reset — re-run npm run seed after</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Minikube teardown</span><button class="btn-copy" data-copy="cmd-8c">Copy</button></div>
+          <pre><code id="cmd-8c">npm run minikube:down
+minikube stop</code></pre>
+        </div>
+
+        <h3>You should now be able to</h3>
+        <ul class="checklist">
+          <li>Run SecureBank on Docker Compose or Minikube</li>
+          <li>Explain logs, traces, metrics, and RUM for the demo</li>
+          <li>Demo the APM service map with business traffic (transfer path)</li>
+          <li>Inject failures with feature flags and correlate ERROR logs + traces</li>
+          <li>Describe how O11y detectors can feed ITSI notables and episodes</li>
+          <li>Optional: configure an ITSI service linked to APM entities</li>
+        </ul>
+
+        <div class="callout callout--tip">
+          <strong>Next steps:</strong> <a href="WORKSHOP_GUIDE.md">Facilitator guide</a> · <a href="https://help.splunk.com/en/splunk-observability-cloud" target="_blank" rel="noopener">Splunk O11y docs</a> · <a href="https://docs.splunk.com/Documentation/ITSI" target="_blank" rel="noopener">ITSI docs</a>
+        </div>
+      </section>
+    </main>
+
+    <aside class="toc" aria-label="On this page">
+      <p class="toc__label">On this page</p>
+      <nav id="tocNav" class="toc__nav"></nav>
+    </aside>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

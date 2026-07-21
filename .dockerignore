@@ -1,0 +1,8 @@
+.git
+node_modules
+dist
+*.md
+.env
+frontend/node_modules
+services/*/node_modules
+packages/*/node_modules
