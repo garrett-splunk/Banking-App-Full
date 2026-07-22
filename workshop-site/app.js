@@ -137,7 +137,8 @@
   window.addEventListener("scroll", updateProgress, { passive: true });
   updateProgress();
 
-  /* ---- Feature flag demo controls ---- */
+  /* ---- Feature flag demo controls (set true to re-enable) ---- */
+  const DEMO_CONTROLS_ENABLED = false;
   const isLocalLab =
     location.hostname === "localhost" || location.hostname === "127.0.0.1";
   const API_BASE = isLocalLab ? "http://localhost:8080/api" : "";
@@ -297,19 +298,25 @@
     selectId: "flagDemoSelectStep4",
   });
 
-  refreshFlagState().catch(() => {
-    if (!isLocalLab) {
-      setFlagMessage(
-        "Live controls require the local stack (http://localhost:8080). Clone the repo and run docker compose up.",
-        true
-      );
-      document.querySelectorAll(".flag-demo button").forEach((btn) => {
-        btn.disabled = true;
-      });
-      return;
-    }
-    setFlagMessage("Platform not reachable — start Docker Compose or Minikube first.", true);
-  });
+  if (DEMO_CONTROLS_ENABLED) {
+    document.querySelectorAll(".flag-demo").forEach((panel) => {
+      panel.hidden = false;
+    });
+
+    refreshFlagState().catch(() => {
+      if (!isLocalLab) {
+        setFlagMessage(
+          "Live controls require the local stack (http://localhost:8080). Clone the repo and run docker compose up.",
+          true
+        );
+        document.querySelectorAll(".flag-demo button").forEach((btn) => {
+          btn.disabled = true;
+        });
+        return;
+      }
+      setFlagMessage("Platform not reachable — start Docker Compose or Minikube first.", true);
+    });
+  }
 
   /* ---- Deploy path tabs ---- */
   document.querySelectorAll("[data-deploy-tab]").forEach((tab) => {

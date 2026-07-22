@@ -28,7 +28,7 @@ React SPA → API Gateway → Microservices → PostgreSQL (database-per-service
 - **PostgreSQL 16** — 9 databases (one per data service)
 - **Mailpit** — Email capture UI at http://localhost:8025
 - **OpenTelemetry Collector** — Receives traces/metrics/logs on ports 4317/4318; forwards to Splunk Observability Cloud
-- **Workshop Site** — Step-by-step lab guide at https://garrett-splunk.github.io/Banking-App-Full/ (or http://localhost:8090 locally)
+- **Workshop Site** — Step-by-step lab guide (GitHub Pages temporarily offline; http://localhost:8090 when running locally)
 
 ## Quick Start
 

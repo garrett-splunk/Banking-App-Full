@@ -81,7 +81,7 @@
           </div>
         </div>
 
-        <div id="flagDemoPanel" class="flag-demo" aria-live="polite">
+        <div id="flagDemoPanel" class="flag-demo" aria-live="polite" hidden>
           <div class="flag-demo__header">
             <h2 class="flag-demo__title">Live demo controls</h2>
             <span id="flagDemoStatus" class="flag-demo__badge flag-demo__badge--ok">Errors off</span>
@@ -362,7 +362,7 @@ kubectl -n banking logs deploy/transaction-service --since=5m | jq .</code></pre
         <div class="step-meta"><span class="step-badge">Step 5</span><span class="step-time">~8 min</span></div>
         <h2>Feature flags — failure injection</h2>
         <p>Admin-controlled flags simulate database insert failures for observability and ITSI episode demos.</p>
-        <div id="flagDemoPanelStep4" class="flag-demo flag-demo--compact" aria-live="polite">
+        <div id="flagDemoPanelStep4" class="flag-demo flag-demo--compact" aria-live="polite" hidden>
           <div class="flag-demo__header">
             <h3 class="flag-demo__title">Quick controls</h3>
             <span id="flagDemoStatusStep4" class="flag-demo__badge flag-demo__badge--ok">Errors off</span>

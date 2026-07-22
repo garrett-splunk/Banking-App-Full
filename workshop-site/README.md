@@ -2,7 +2,9 @@
 
 Static step-by-step lab guide for the banking platform demo — Splunk Observability Cloud (APM, RUM, Log Observer) plus optional ITSI integration.
 
-**Published site:** https://garrett-splunk.github.io/Banking-App-Full/
+**Published site:** temporarily offline — re-enable via GitHub Pages settings and `workflow_dispatch` when ready.
+
+Live feature-flag demo controls are disabled in `app.js` (`DEMO_CONTROLS_ENABLED = false`).
 
 ## View locally
 
