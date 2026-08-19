@@ -55,7 +55,7 @@ kubectl -n banking patch configmap banking-config --type merge -p "{
     \"VITE_SPLUNK_REALM\": \"${SPLUNK_REALM}\",
     \"VITE_SPLUNK_RUM_ACCESS_TOKEN\": \"${SPLUNK_RUM_ACCESS_TOKEN}\"
   }
-}"
+}" 2>/dev/null || echo "==> banking-config not found yet — run after kubectl apply -k"
 
 echo "==> Secret banking-secrets applied in namespace banking"
 echo "==> ConfigMap banking-config patched with RUM token (VITE_SPLUNK_RUM_ACCESS_TOKEN)"

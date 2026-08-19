@@ -40,6 +40,7 @@
         <li class="sidebar-tree__item"><a href="#overview" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Overview</a></li>
         <li class="sidebar-tree__item"><a href="#quickstart" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Quickstart scripts</a></li>
         <li class="sidebar-tree__item"><a href="#concepts" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Concepts 101</a></li>
+        <li class="sidebar-tree__item"><a href="#o11y-filters" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> O11y UI filters</a></li>
         <li class="sidebar-tree__item"><a href="#commands" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> All commands</a></li>
         <li class="sidebar-tree__item"><a href="#prereqs" class="sidebar-tree__link" data-step="1"><span class="sidebar-tree__num">1</span> Prerequisites</a></li>
         <li class="sidebar-tree__item"><a href="#step-start" class="sidebar-tree__link" data-step="2"><span class="sidebar-tree__num">2</span> Start platform</a></li>
@@ -174,7 +175,7 @@ demo-traffic         # generate traffic</code></pre>
 # Or stop Minikube VM too:
 bash scripts/demo-teardown.sh full --stop-minikube</code></pre>
         </div>
-        <p>See <a href="#commands">All commands</a> for manual Docker Compose / Minikube steps and feature-flag CLI.</p>
+        <p>See <a href="#o11y-filters">O11y UI filters</a> for APM, RUM, Metric Explorer, and Dashboard tags. Manual steps: <a href="#commands">All commands</a>.</p>
       </section>
 
       <section>
@@ -266,6 +267,210 @@ bash scripts/demo-teardown.sh full --stop-minikube</code></pre>
             <p>The browser appears in <strong>RUM</strong> (<code>securebank-frontend</code>), not as an APM microservice node. Open a RUM session → <strong>View related trace</strong> to jump to backend APM via the <code>Server-Timing</code> header.</p>
           </div>
         </div>
+      </section>
+
+      <section id="o11y-filters">
+        <h2>O11y UI filter guide — what to search in each view</h2>
+        <p>
+          SecureBank tags all backend telemetry with environment <strong><code>banking-app</code></strong>
+          and namespace <strong><code>securebank</code></strong>. Set the environment filter first in every view —
+          if you see no data, you are usually in the wrong environment (e.g. <code>development</code>) or the stack is not exporting yet.
+        </p>
+
+        <div class="callout callout--tip">
+          <p class="callout__title">Global tags (all signals)</p>
+          <div class="callout__body">
+            <table class="info-table">
+              <tr><th>Tag / dimension</th><th>Value for this demo</th><th>Where it appears</th></tr>
+              <tr><td><code>deployment.environment</code></td><td><code>banking-app</code></td><td>APM, metrics, logs, RUM environment picker</td></tr>
+              <tr><td><code>deployment.environment.name</code></td><td><code>banking-app</code></td><td>OTel resource attribute (maps to above in UI)</td></tr>
+              <tr><td><code>service.namespace</code></td><td><code>securebank</code></td><td>APM, metrics, RUM global attributes</td></tr>
+              <tr><td><code>demo.name</code></td><td><code>banking-platform</code></td><td>Extra scope filter (optional)</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <h3>APM</h3>
+        <p><strong>Navigation:</strong> Observability Cloud → <strong>APM</strong> (not Infrastructure).</p>
+        <table class="info-table">
+          <thead>
+            <tr><th>APM view</th><th>Set this first</th><th>Filters / tags to use</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Environment</strong> (top bar)</td>
+              <td><code>banking-app</code></td>
+              <td>Required — without this, services and traces will look empty</td>
+            </tr>
+            <tr>
+              <td><strong>Service map</strong></td>
+              <td>Environment <code>banking-app</code></td>
+              <td><code>service.name:api-gateway</code>, <code>service.name:transaction-service</code>, <code>service.namespace:securebank</code></td>
+            </tr>
+            <tr>
+              <td><strong>Services</strong> list</td>
+              <td>Environment <code>banking-app</code></td>
+              <td>Look for <code>api-gateway</code>, <code>auth-service</code>, <code>transaction-service</code>, <code>account-service</code>, <code>notification-service</code>, <code>admin-service</code></td>
+            </tr>
+            <tr>
+              <td><strong>Traces</strong></td>
+              <td>Environment <code>banking-app</code></td>
+              <td><code>service.name:transaction-service</code> + <code>deployment.environment:banking-app</code>; for errors add <code>error:true</code> or filter HTTP 503</td>
+            </tr>
+            <tr>
+              <td><strong>Trace/span tags</strong></td>
+              <td>—</td>
+              <td><code>http.method</code>, <code>http.status_code</code>, <code>http.route</code>, <code>service.name</code></td>
+            </tr>
+            <tr>
+              <td><strong>Database deps</strong></td>
+              <td>—</td>
+              <td>PostgreSQL shows as a <em>dependency</em> under each service — not a separate microservice box</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">Business-flow demo: use transfers or <code>npm run demo:traffic</code>. Admin-only browsing centers the map on <code>admin-service</code> — that is expected.</p>
+
+        <h3>Metric Explorer</h3>
+        <p><strong>Navigation:</strong> Observability Cloud → <strong>Metric Explorer</strong> (or chart builder in APM → Services).</p>
+        <table class="info-table">
+          <thead>
+            <tr><th>What to chart</th><th>Metric / signal</th><th>Filter dimensions</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Request volume</td>
+              <td><code>service.request.count</code> or <code>calls.count</code></td>
+              <td><code>service.name:transaction-service</code>, <code>deployment.environment:banking-app</code></td>
+            </tr>
+            <tr>
+              <td>Latency (p90)</td>
+              <td><code>service.request.duration</code> or <code>request.duration</code></td>
+              <td><code>service.name:api-gateway</code>, <code>deployment.environment:banking-app</code></td>
+            </tr>
+            <tr>
+              <td>Error rate</td>
+              <td><code>service.error.count</code> or error % on request metrics</td>
+              <td><code>service.name:transaction-service</code>, <code>http.status_code:503</code> (feature-flag failures)</td>
+            </tr>
+            <tr>
+              <td>All demo services</td>
+              <td>Any HTTP / service metric</td>
+              <td><code>service.namespace:securebank</code>, <code>deployment.environment:banking-app</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">Metric names can vary slightly by ingest path — use Metric Finder and search for <code>service.</code> or <code>http.</code> with dimension <code>service.name</code>.</p>
+
+        <h3>Dashboards</h3>
+        <p><strong>Navigation:</strong> Observability Cloud → <strong>Dashboards</strong> (org or built-in APM/RUM dashboards).</p>
+        <table class="info-table">
+          <thead>
+            <tr><th>Dashboard type</th><th>Scope filters</th><th>SecureBank values</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>APM / service dashboards</td>
+              <td>Environment + service</td>
+              <td><code>deployment.environment:banking-app</code>, <code>service.name:api-gateway</code></td>
+            </tr>
+            <tr>
+              <td>Custom chart variables</td>
+              <td>Dimension filters on each panel</td>
+              <td><code>service.namespace:securebank</code>, <code>demo.name:banking-platform</code></td>
+            </tr>
+            <tr>
+              <td>Detector-backed panels</td>
+              <td>Same as Metric Explorer</td>
+              <td>Scope detectors to <code>service.name:transaction-service</code> + <code>deployment.environment:banking-app</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p>When building a new panel: add filter <code>deployment.environment = banking-app</code> before picking metrics — otherwise panels may show unrelated environments.</p>
+
+        <h3>RUM (Real User Monitoring)</h3>
+        <p><strong>Navigation:</strong> Observability Cloud → <strong>RUM</strong> (separate from APM — the browser is not an APM service node).</p>
+        <table class="info-table">
+          <thead>
+            <tr><th>RUM view</th><th>Application / environment</th><th>Filters / tags</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Application</strong> picker</td>
+              <td><code>securebank-frontend</code></td>
+              <td>Set in <code>frontend/src/rum.ts</code> as <code>applicationName</code></td>
+            </tr>
+            <tr>
+              <td><strong>Environment</strong> picker</td>
+              <td><code>banking-app</code></td>
+              <td><code>deploymentEnvironment</code> / <code>VITE_DEPLOYMENT_ENVIRONMENT</code></td>
+            </tr>
+            <tr>
+              <td><strong>Sessions</strong></td>
+              <td>App + env above</td>
+              <td><code>application:securebank-frontend</code>, <code>deployment.environment:banking-app</code></td>
+            </tr>
+            <tr>
+              <td><strong>Page / route</strong></td>
+              <td>—</td>
+              <td><code>/transfer</code>, <code>/dashboard</code>, <code>/login</code> (after using the SPA)</td>
+            </tr>
+            <tr>
+              <td><strong>Global attributes</strong></td>
+              <td>—</td>
+              <td><code>service.namespace:securebank</code>, <code>demo.name:banking-platform</code></td>
+            </tr>
+            <tr>
+              <td><strong>Link to backend APM</strong></td>
+              <td>—</td>
+              <td>Open session → <strong>View related trace</strong> → APM trace via <code>api-gateway</code> (<code>Server-Timing</code> header)</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout callout--warning">
+          <p class="callout__title">No RUM data?</p>
+          <div class="callout__body">
+            <p>Requires a real <code>SPLUNK_RUM_ACCESS_TOKEN</code> in <code>.env.splunk</code> and a frontend restart. In browser DevTools → Console, you should <em>not</em> see <code>VITE_SPLUNK_RUM_ACCESS_TOKEN is not set</code>.</p>
+          </div>
+        </div>
+
+        <h3>Log Observer</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>View</th><th>Filter syntax</th><th>Example</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>All demo logs</td>
+              <td><code>deployment.environment</code></td>
+              <td><code>deployment.environment:banking-app</code></td>
+            </tr>
+            <tr>
+              <td>One service</td>
+              <td><code>service.name</code></td>
+              <td><code>service.name:transaction-service</code></td>
+            </tr>
+            <tr>
+              <td>Errors only</td>
+              <td><code>severityText</code></td>
+              <td><code>deployment.environment:banking-app severityText:ERROR</code></td>
+            </tr>
+            <tr>
+              <td>Feature-flag failures</td>
+              <td><code>feature_flag</code>, <code>http_status</code></td>
+              <td><code>service.name:transaction-service http_status:503</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">Log Observer is <strong>not</strong> Splunk Platform index search — use the Log Observer UI in O11y.</p>
+
+        <h3>Detectors &amp; alerts</h3>
+        <table class="info-table">
+          <tr><th>Setting</th><th>Recommended value</th></tr>
+          <tr><td>Signal</td><td>Error count, 503 rate, or latency on <code>transaction-service</code></td></tr>
+          <tr><td>Filter</td><td><code>deployment.environment:banking-app</code></td></tr>
+          <tr><td>Service scope</td><td><code>service.name:transaction-service</code></td></tr>
+        </table>
       </section>
 
       <section id="commands">
@@ -521,7 +726,7 @@ docker compose restart api-gateway transaction-service account-service</code></p
       <section id="step-o11y">
         <div class="step-meta"><span class="step-badge">Step 7</span><span class="step-time">~15 min</span></div>
         <h2>Splunk Observability Cloud demo</h2>
-        <p>Filter environment to <strong><code>banking-app</code></strong> in APM and RUM before exploring.</p>
+        <p>Filter environment to <strong><code>banking-app</code></strong> in APM and RUM before exploring. See the full <a href="#o11y-filters">O11y UI filter guide</a> for Metric Explorer, Dashboards, RUM, and Log Observer tags.</p>
 
         <h3>1. APM service map</h3>
         <article class="ui-walkthrough">
@@ -562,12 +767,13 @@ docker compose restart api-gateway transaction-service account-service</code></p
 
         <table class="info-table">
           <tr><th>Filter</th><th>Purpose</th></tr>
-          <tr><td><code>service.name:transaction-service</code></td><td>Transfer service only</td></tr>
-          <tr><td><code>deployment.environment:banking-app</code></td><td>APM / RUM environment</td></tr>
-          <tr><td><code>application:securebank-frontend</code></td><td>RUM application</td></tr>
-          <tr><td><code>service.namespace:securebank</code></td><td>All demo services</td></tr>
+          <tr><td><code>deployment.environment:banking-app</code></td><td><strong>Start here</strong> — APM, metrics, logs, RUM</td></tr>
+          <tr><td><code>service.name:transaction-service</code></td><td>Transfer path / failure demo</td></tr>
+          <tr><td><code>application:securebank-frontend</code></td><td>RUM application (RUM UI only)</td></tr>
+          <tr><td><code>service.namespace:securebank</code></td><td>All demo backend services</td></tr>
           <tr><td><code>http_status:503</code></td><td>Feature flag responses</td></tr>
         </table>
+        <p><a href="#o11y-filters">→ Full filter guide by UI (APM, Metric Explorer, Dashboards, RUM, Log Observer)</a></p>
       </section>
 
       <section id="step-itsi-concepts">

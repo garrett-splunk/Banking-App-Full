@@ -39,11 +39,11 @@ fi
 echo "==> Building images"
 bash scripts/k8s-build-images.sh
 
-echo "==> Creating secrets from .env / .env.splunk"
-bash scripts/k8s-create-secrets.sh
-
 echo "==> Applying Kubernetes manifests"
 kubectl apply -k k8s/overlays/minikube
+
+echo "==> Creating secrets from .env / .env.splunk"
+bash scripts/k8s-create-secrets.sh
 
 echo "==> Waiting for PostgreSQL"
 kubectl -n banking rollout status statefulset/postgres --timeout=600s
