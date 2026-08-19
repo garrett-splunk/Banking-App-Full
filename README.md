@@ -28,7 +28,7 @@ React SPA → API Gateway → Microservices → PostgreSQL (database-per-service
 - **PostgreSQL 16** — 9 databases (one per data service)
 - **Mailpit** — Email capture UI at http://localhost:8025
 - **OpenTelemetry Collector** — Receives traces/metrics/logs on ports 4317/4318; forwards to Splunk Observability Cloud
-- **Workshop Site** — Step-by-step lab guide (GitHub Pages temporarily offline; http://localhost:8090 when running locally)
+- **Workshop Site** — Step-by-step lab guide at https://garrett-splunk.github.io/Banking-App-Full/ (or http://localhost:8090 when running locally)
 
 ## Quick Start
 
@@ -55,6 +55,45 @@ Open the app:
 - **Mailpit (emails):** http://localhost:8025
 - **OTEL Collector health:** http://localhost:13133
 
+## Demo lifecycle (recommended)
+
+Unified scripts auto-detect **Minikube** vs **Docker Compose** and support partial startup/teardown:
+
+```bash
+# Full demo (app + O11y + workshop + seed + port-forwards)
+npm run demo:up
+
+# App only — no Splunk export (OTEL_SDK_DISABLED)
+npm run demo:up:app
+
+# Enable Splunk O11y on a running stack
+npm run demo:up:o11y
+
+# Stop sending data to Splunk (keep app running)
+npm run demo:down:o11y
+
+# Workshop site only (:8090)
+npm run demo:up:workshop
+
+# Generate demo traffic
+npm run demo:traffic
+
+# Full teardown (+ stop Minikube VM)
+bash scripts/demo-teardown.sh full --stop-minikube
+```
+
+Optional shell aliases: `source scripts/demo-aliases.sh` (add to `~/.zshrc` for `demo-up`, `demo-down`, `demo-o11y-on`, etc.).
+
+| Profile | Command | What it does |
+|---------|---------|--------------|
+| `full` | `npm run demo:up` | Entire stack with Splunk pipeline |
+| `app` | `npm run demo:up:app` | Banking app, no O11y export |
+| `o11y` | `npm run demo:up:o11y` | Turn on Splunk export only |
+| `workshop` | `npm run demo:up:workshop` | Static lab guide on :8090 |
+| `traffic` | `npm run demo:traffic` | Run traffic generator |
+
+Legacy commands (`npm run minikube:up`, `docker compose up`) still work.
+
 ## Minikube (local Kubernetes)
 
 Run the same stack on Minikube instead of Docker Compose:
@@ -76,6 +115,8 @@ Install the Cursor skill: copy `~/.cursor/skills/build-demo/` → teammate's `~/
 ## Teardown
 
 Stop the platform when you're done. Config files (`.env`, `.env.splunk`) are **not** deleted.
+
+**Quick path:** `npm run demo:down` (full teardown, auto-detects runtime) or `npm run demo:down:o11y` to stop Splunk ingest only.
 
 ### Docker Compose
 

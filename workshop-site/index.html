@@ -38,6 +38,7 @@
       <p class="sidebar__hint">Follow each step in order. Styled with the <a href="https://github.com/splunk/hugo-theme-splunk-workshop" target="_blank" rel="noopener">Splunk Workshop Theme</a>.</p>
       <ul class="sidebar-tree">
         <li class="sidebar-tree__item"><a href="#overview" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Overview</a></li>
+        <li class="sidebar-tree__item"><a href="#quickstart" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Quickstart scripts</a></li>
         <li class="sidebar-tree__item"><a href="#concepts" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Concepts 101</a></li>
         <li class="sidebar-tree__item"><a href="#commands" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> All commands</a></li>
         <li class="sidebar-tree__item"><a href="#prereqs" class="sidebar-tree__link" data-step="1"><span class="sidebar-tree__num">1</span> Prerequisites</a></li>
@@ -104,6 +105,77 @@
           <p id="flagDemoMessage" class="flag-demo__message"></p>
         </div>
       </header>
+
+      <section id="quickstart">
+        <h2>Quickstart — demo scripts &amp; aliases</h2>
+        <p>
+          Clone the repo, configure env files once, then use the unified lifecycle scripts.
+          They auto-detect <strong>Minikube</strong> vs <strong>Docker Compose</strong> and support
+          partial startup (app only, O11y only, workshop only).
+        </p>
+        <div class="callout callout--tip">
+          <p class="callout__title">Repo</p>
+          <div class="callout__body">
+            <p><a href="https://github.com/garrett-splunk/Banking-App-Full" target="_blank" rel="noopener">github.com/garrett-splunk/Banking-App-Full</a> — this page is also published at <a href="https://garrett-splunk.github.io/Banking-App-Full/">garrett-splunk.github.io/Banking-App-Full</a>.</p>
+          </div>
+        </div>
+
+        <h3>One-time setup</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Clone &amp; configure</span><button class="btn-copy" data-copy="cmd-quickstart-setup">Copy</button></div>
+          <pre><code id="cmd-quickstart-setup">git clone https://github.com/garrett-splunk/Banking-App-Full.git
+cd Banking-App-Full
+cp .env.example .env
+cp .env.splunk.example .env.splunk   # add Splunk ingest + RUM tokens
+npm install</code></pre>
+        </div>
+
+        <h3>Start the demo</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Full stack (recommended)</span><button class="btn-copy" data-copy="cmd-quickstart-up">Copy</button></div>
+          <pre><code id="cmd-quickstart-up">npm run demo:up</code></pre>
+        </div>
+        <p class="muted">Opens the app at <code>http://localhost:5173</code>, API at <code>:8080</code>, workshop at <code>:8090</code>, OTel health at <code>:13133</code>.</p>
+
+        <h3>Profiles</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>Command</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>npm run demo:up</code></td><td>Full stack — app + OTel + workshop + seed</td></tr>
+            <tr><td><code>npm run demo:up:app</code></td><td>Banking app only — no Splunk export</td></tr>
+            <tr><td><code>npm run demo:up:o11y</code></td><td>Enable Splunk O11y on a running stack</td></tr>
+            <tr><td><code>npm run demo:up:workshop</code></td><td>Workshop site only (<code>:8090</code>)</td></tr>
+            <tr><td><code>npm run demo:traffic</code></td><td>Generate demo API traffic</td></tr>
+            <tr><td><code>npm run demo:down</code></td><td>Full teardown (auto-detect runtime)</td></tr>
+            <tr><td><code>npm run demo:down:o11y</code></td><td>Stop Splunk ingest — keep app running</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Shell aliases (optional)</h3>
+        <p>Add short commands to your shell — works from any directory after sourcing once per session:</p>
+        <div class="code-block">
+          <div class="code-block__header"><span>Load aliases</span><button class="btn-copy" data-copy="cmd-quickstart-aliases">Copy</button></div>
+          <pre><code id="cmd-quickstart-aliases"># From repo root (or add to ~/.zshrc with full path)
+source scripts/demo-aliases.sh
+
+demo-up              # npm run demo:up
+demo-down            # npm run demo:down
+demo-o11y-on         # enable Splunk export
+demo-o11y-off        # disable Splunk export
+demo-traffic         # generate traffic</code></pre>
+        </div>
+
+        <h3>Stop everything</h3>
+        <div class="code-block">
+          <div class="code-block__header"><span>Teardown</span><button class="btn-copy" data-copy="cmd-quickstart-down">Copy</button></div>
+          <pre><code id="cmd-quickstart-down">npm run demo:down
+# Or stop Minikube VM too:
+bash scripts/demo-teardown.sh full --stop-minikube</code></pre>
+        </div>
+        <p>See <a href="#commands">All commands</a> for manual Docker Compose / Minikube steps and feature-flag CLI.</p>
+      </section>
 
       <section>
         <h2>Architecture</h2>
@@ -199,7 +271,17 @@
       <section id="commands">
         <h2>All commands (cheat sheet)</h2>
         <div class="code-block">
-          <div class="code-block__header"><span>Docker Compose — start</span><button class="btn-copy" data-copy="cmd-all-docker">Copy</button></div>
+          <div class="code-block__header"><span>Demo lifecycle — start</span><button class="btn-copy" data-copy="cmd-all-demo-up">Copy</button></div>
+          <pre><code id="cmd-all-demo-up">cd ~/projects/banking-platform
+cp .env.example .env
+cp .env.splunk.example .env.splunk   # add ingest + RUM tokens
+npm run demo:up                    # full stack (auto-detect Minikube or Docker)
+npm run demo:up:app                # app only, no Splunk export
+npm run demo:up:o11y               # enable Splunk O11y on running stack
+npm run demo:up:workshop           # workshop site only (:8090)</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block__header"><span>Docker Compose — start (manual)</span><button class="btn-copy" data-copy="cmd-all-docker">Copy</button></div>
           <pre><code id="cmd-all-docker">cd ~/projects/banking-platform
 cp .env.example .env
 cp .env.splunk.example .env.splunk   # add ingest + RUM tokens
@@ -207,7 +289,7 @@ docker compose up --build -d
 npm install && npm run seed</code></pre>
         </div>
         <div class="code-block">
-          <div class="code-block__header"><span>Minikube — start</span><button class="btn-copy" data-copy="cmd-all-k8s">Copy</button></div>
+          <div class="code-block__header"><span>Minikube — start (manual)</span><button class="btn-copy" data-copy="cmd-all-k8s">Copy</button></div>
           <pre><code id="cmd-all-k8s">cd ~/projects/banking-platform
 npm run minikube:up
 npm run minikube:port-forward</code></pre>
@@ -221,7 +303,10 @@ npm run flags -- disable fail_transaction_insert</code></pre>
         </div>
         <div class="code-block">
           <div class="code-block__header"><span>Teardown</span><button class="btn-copy" data-copy="cmd-all-down">Copy</button></div>
-          <pre><code id="cmd-all-down">docker compose down              # stop Docker stack
+          <pre><code id="cmd-all-down">npm run demo:down                  # full teardown (auto-detect)
+npm run demo:down:o11y             # stop Splunk export, keep app up
+bash scripts/demo-teardown.sh full --stop-minikube
+docker compose down              # stop Docker stack
 npm run minikube:port-forward -- stop
 npm run minikube:down            # remove K8s banking namespace</code></pre>
         </div>
@@ -235,7 +320,7 @@ npm run minikube:down            # remove K8s banking namespace</code></pre>
           <li><strong>Node.js 20+</strong> and npm for seed, traffic, and flags scripts</li>
           <li><strong>Splunk Observability Cloud</strong> ingest token (Organization Settings → Access Tokens)</li>
           <li><strong>Splunk RUM</strong> public token in <code>.env.splunk</code> as <code>SPLUNK_RUM_ACCESS_TOKEN</code></li>
-          <li><strong>Minikube</strong> (optional) — 6 GB RAM recommended; <code>npm run minikube:up</code></li>
+          <li><strong>Minikube</strong> (optional) — 6 GB RAM recommended; <code>npm run demo:up</code> or <code>npm run minikube:up</code></li>
           <li><strong>ITSI</strong> (optional, Step 9) — Splunk Enterprise or Cloud with ITSI licensed</li>
         </ul>
         <p>Ports used: <code>5173</code> (app), <code>8080</code> (API), <code>8090</code> (workshop), <code>8025</code> (mail), <code>4317/4318</code> (OTel).</p>
