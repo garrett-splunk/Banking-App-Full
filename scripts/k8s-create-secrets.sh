@@ -28,6 +28,7 @@ fi
 
 SPLUNK_INGEST_URL="${SPLUNK_INGEST_URL%/}"
 SPLUNK_LOG_INGEST_URL="${SPLUNK_LOG_INGEST_URL:-${SPLUNK_INGEST_URL}/v1/log}"
+SPLUNK_OPAMP_URL="${SPLUNK_OPAMP_URL:-${SPLUNK_INGEST_URL}/v1/opamp}"
 SPLUNK_RUM_ACCESS_TOKEN="${SPLUNK_RUM_ACCESS_TOKEN:-}"
 
 if [[ ${#SPLUNK_ACCESS_TOKEN} -le 25 ]]; then
@@ -47,6 +48,7 @@ kubectl -n banking create secret generic banking-secrets \
   --from-literal=SPLUNK_ACCESS_TOKEN="${SPLUNK_ACCESS_TOKEN}" \
   --from-literal=SPLUNK_INGEST_URL="${SPLUNK_INGEST_URL}" \
   --from-literal=SPLUNK_LOG_INGEST_URL="${SPLUNK_LOG_INGEST_URL}" \
+  --from-literal=SPLUNK_OPAMP_URL="${SPLUNK_OPAMP_URL}" \
   --from-literal=SPLUNK_API_URL="${SPLUNK_API_URL}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -60,6 +62,7 @@ kubectl -n banking patch configmap banking-config --type merge -p "{
 echo "==> Secret banking-secrets applied in namespace banking"
 echo "==> ConfigMap banking-config patched with RUM token (VITE_SPLUNK_RUM_ACCESS_TOKEN)"
 echo "==> Log Observer endpoint: ${SPLUNK_LOG_INGEST_URL}"
+echo "==> Fleet Management (OpAMP): ${SPLUNK_OPAMP_URL}"
 if [[ -z "${SPLUNK_RUM_ACCESS_TOKEN}" ]]; then
   echo "WARNING: SPLUNK_RUM_ACCESS_TOKEN is empty — browser RUM will be disabled until set in .env.splunk"
 fi

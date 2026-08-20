@@ -21,11 +21,13 @@ Profiles:
   app       Banking stack without Splunk export
   o11y      Enable Splunk O11y pipeline (starts app if needed)
   workshop  Static workshop site on :8090 only
-  traffic   Generate demo traffic against running API
+  traffic       Generate API + RUM traffic (APM + linked browser sessions)
+  traffic-api   API-only traffic (APM backend)
+  traffic-rum   Browser-only traffic (RUM + linked APM)
 
 Options:
   --runtime minikube|docker|auto   Default: auto
-  --traffic                        Run npm run traffic after full startup
+  --traffic                        Run API + RUM traffic after full startup
   --no-open                        Do not open workshop URL in browser
   --seed                           Force re-seed demo data
   -h, --help                       Show this help
@@ -34,7 +36,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    full|app|o11y|workshop|traffic)
+    full|app|o11y|workshop|traffic|traffic-api|traffic-rum)
       PROFILE="$1"
       shift
       ;;
@@ -69,15 +71,25 @@ done
 demo_cd_root
 ensure_env_file
 
-if [[ "$PROFILE" != "traffic" && "$PROFILE" != "workshop" ]]; then
+if [[ "$PROFILE" != "traffic" && "$PROFILE" != "traffic-api" && "$PROFILE" != "traffic-rum" && "$PROFILE" != "workshop" ]]; then
   RUNTIME="$(detect_runtime "$RUNTIME")"
   check_port_conflicts "$RUNTIME"
 fi
 
 run_traffic_if_requested() {
-  if [[ "$RUN_TRAFFIC" == "true" || "$PROFILE" == "traffic" ]]; then
-    demo_wait_http "http://localhost:8080/health" "api-gateway"
-    npm run traffic
+  case "$PROFILE" in
+    traffic-api)
+      bash scripts/run-demo-traffic.sh api
+      ;;
+    traffic-rum)
+      bash scripts/run-demo-traffic.sh rum
+      ;;
+    traffic)
+      bash scripts/run-demo-traffic.sh all
+      ;;
+  esac
+  if [[ "$RUN_TRAFFIC" == "true" && "$PROFILE" == "full" ]]; then
+    bash scripts/run-demo-traffic.sh all
   fi
 }
 
@@ -215,12 +227,12 @@ case "$PROFILE" in
     fi
     exit 0
     ;;
-  traffic)
+  traffic|traffic-api|traffic-rum)
     run_traffic_if_requested
     exit 0
     ;;
 esac
 
-if [[ "$NO_OPEN" == "false" && "$PROFILE" != "traffic" ]]; then
+if [[ "$NO_OPEN" == "false" && "$PROFILE" != "traffic" && "$PROFILE" != "traffic-api" && "$PROFILE" != "traffic-rum" ]]; then
   open http://localhost:8090 2>/dev/null || true
 fi

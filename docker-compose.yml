@@ -31,8 +31,8 @@ services:
       - "1025:1025"
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.111.0
-    command: ["--config=/etc/otelcol/config.yaml"]
+    image: quay.io/signalfx/splunk-otel-collector:0.154.2
+    command: ["--config=/etc/otelcol/config.yaml", "--feature-gates=+splunk.opamp.enabled"]
     volumes:
       - ./collector/otelcol-config.yaml:/etc/otelcol/config.yaml:ro
     env_file:

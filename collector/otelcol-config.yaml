@@ -1,9 +1,19 @@
-# OpenTelemetry Collector for SecureBank → Splunk Observability Cloud
+# Splunk OpenTelemetry Collector for SecureBank → Splunk Observability Cloud
 # Requires .env.splunk with SPLUNK_ACCESS_TOKEN, SPLUNK_REALM, SPLUNK_INGEST_URL, SPLUNK_API_URL
+# OpAMP enrollment (Fleet Management) uses SPLUNK_OPAMP_URL — see .env.splunk.example
 
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
+  opamp/splunk_o11y:
+    agent_description:
+      include_resource_attributes: true
+    server:
+      http:
+        endpoint: ${SPLUNK_OPAMP_URL}
+        polling_interval: 30s
+        headers:
+          X-SF-Token: ${SPLUNK_ACCESS_TOKEN}
 
 receivers:
   otlp:
@@ -51,7 +61,12 @@ exporters:
     verbosity: basic
 
 service:
-  extensions: [health_check]
+  extensions: [health_check, opamp/splunk_o11y]
+  telemetry:
+    resource:
+      deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT}
+      otelcol.service.mode: gateway
+      demo.name: banking-platform
   pipelines:
     traces:
       receivers: [otlp]

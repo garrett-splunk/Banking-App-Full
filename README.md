@@ -75,14 +75,27 @@ npm run demo:down:o11y
 # Workshop site only (:8090)
 npm run demo:up:workshop
 
-# Generate demo traffic
+# One-shot: start stack + API + RUM traffic
+npm run demo:run
+
+# Generate traffic (API + browser RUM — linked APM traces)
 npm run demo:traffic
+npm run demo:traffic:api       # API only
+npm run demo:traffic:rum       # browser RUM only
+# First time for RUM: npx playwright install chromium
 
 # Full teardown (+ stop Minikube VM)
 bash scripts/demo-teardown.sh full --stop-minikube
 ```
 
-Optional shell aliases: `source scripts/demo-aliases.sh` (add to `~/.zshrc` for `demo-up`, `demo-down`, `demo-o11y-on`, etc.).
+Optional shell aliases — one script for everything:
+
+```bash
+source scripts/demo-aliases.sh   # or auto-loaded from ~/.zshrc
+demo-help                        # list all commands
+demo-run                         # demo-up + demo-traffic
+demo-traffic                     # API + RUM combined
+```
 
 | Profile | Command | What it does |
 |---------|---------|--------------|
@@ -90,7 +103,8 @@ Optional shell aliases: `source scripts/demo-aliases.sh` (add to `~/.zshrc` for 
 | `app` | `npm run demo:up:app` | Banking app, no O11y export |
 | `o11y` | `npm run demo:up:o11y` | Turn on Splunk export only |
 | `workshop` | `npm run demo:up:workshop` | Static lab guide on :8090 |
-| `traffic` | `npm run demo:traffic` | Run traffic generator |
+| `traffic` | `npm run demo:traffic` | API + RUM traffic (APM + linked sessions) |
+| `run` | `npm run demo:run` | Full stack + both traffic types |
 
 Legacy commands (`npm run minikube:up`, `docker compose up`) still work.
 
@@ -261,6 +275,7 @@ cp .env.splunk.example .env.splunk
 # Edit .env.splunk:
 #   SPLUNK_ACCESS_TOKEN — ingest token (backend/collector)
 #   SPLUNK_RUM_ACCESS_TOKEN — RUM token (browser agent; public by design)
+#   SPLUNK_OPAMP_URL — Fleet Management enrollment (default: ${SPLUNK_INGEST_URL}/v1/opamp)
 ```
 
 Get tokens from Splunk O11y → **Organization Settings → Access Tokens**:
@@ -296,6 +311,9 @@ In Splunk Observability Cloud:
 - **APM** → environment `banking-app`, filter by service name (e.g. `api-gateway`)
 - **Logs (Log Observer)** → `deployment.environment:banking-app severityText:ERROR` — not a Platform index search
 - **Infrastructure** → metrics from `signalfx` exporter
+- **Fleet Management** → Settings → OpenTelemetry → Fleet Management — gateway collector enrolled via OpAMP (`deployment.environment.name: banking-app`, `otelcol.service.mode: gateway`). See [workshop Fleet Management guide](workshop-site/index.html#fleet-management).
+
+The collector image is **Splunk OTel Collector** `0.154.2` with OpAMP enabled (`collector/otelcol-config.yaml`). If the collector is missing from Fleet, verify `SPLUNK_OPAMP_URL` and restart the collector; try `https://ingest.<realm>.observability.splunkcloud.com/v1/opamp` if the default signalfx.com URL fails.
 
 ### Splunk RUM (browser → APM linking)
 

@@ -53,6 +53,15 @@ data:
     extensions:
       health_check:
         endpoint: 0.0.0.0:13133
+      opamp/splunk_o11y:
+        agent_description:
+          include_resource_attributes: true
+        server:
+          http:
+            endpoint: ${SPLUNK_OPAMP_URL}
+            polling_interval: 30s
+            headers:
+              X-SF-Token: ${SPLUNK_ACCESS_TOKEN}
 
     receivers:
       otlp:
@@ -100,7 +109,12 @@ data:
         verbosity: basic
 
     service:
-      extensions: [health_check]
+      extensions: [health_check, opamp/splunk_o11y]
+      telemetry:
+        resource:
+          deployment.environment.name: ${DEPLOYMENT_ENVIRONMENT}
+          otelcol.service.mode: gateway
+          demo.name: banking-platform
       pipelines:
         traces:
           receivers: [otlp]
@@ -151,8 +165,8 @@ spec:
     spec:
       containers:
         - name: otel-collector
-          image: otel/opentelemetry-collector-contrib:0.111.0
-          args: ["--config=/etc/otelcol/config.yaml"]
+          image: quay.io/signalfx/splunk-otel-collector:0.154.2
+          args: ["--config=/etc/otelcol/config.yaml", "--feature-gates=+splunk.opamp.enabled"]
           ports:
             - containerPort: 4317
             - containerPort: 4318
@@ -183,6 +197,11 @@ spec:
                 secretKeyRef:
                   name: banking-secrets
                   key: SPLUNK_LOG_INGEST_URL
+            - name: SPLUNK_OPAMP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: banking-secrets
+                  key: SPLUNK_OPAMP_URL
             - name: SPLUNK_API_URL
               valueFrom:
                 secretKeyRef:

@@ -167,3 +167,11 @@ kubectl -n banking logs deploy/otel-collector --since=5m | grep -iE 'LogsExporte
 - `HTTP 404` on `splunk_hec/o11y` = ingest token, Log Observer entitlement, or wrong `SPLUNK_LOG_INGEST_URL`
 - Use ingest token (not API-only); reapply: `bash scripts/k8s-create-secrets.sh`
 - Search O11y Logs: `deployment.environment:banking-app service.name:api-gateway`
+
+**Collector not in Fleet Management** — requires Splunk OTel Collector with OpAMP (included in this repo). Check enrollment:
+
+```bash
+kubectl -n banking logs deploy/otel-collector --since=5m | grep -i opamp
+```
+
+Set `SPLUNK_OPAMP_URL` in `.env.splunk` (see `.env.splunk.example`), run `bash scripts/k8s-create-secrets.sh`, and restart the collector. Wait 1–2 minutes, then open O11y → Settings → OpenTelemetry → Fleet Management.

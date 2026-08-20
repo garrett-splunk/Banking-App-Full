@@ -41,6 +41,7 @@
         <li class="sidebar-tree__item"><a href="#quickstart" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Quickstart scripts</a></li>
         <li class="sidebar-tree__item"><a href="#concepts" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Concepts 101</a></li>
         <li class="sidebar-tree__item"><a href="#o11y-filters" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> O11y UI filters</a></li>
+        <li class="sidebar-tree__item"><a href="#fleet-management" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> Fleet Management</a></li>
         <li class="sidebar-tree__item"><a href="#commands" class="sidebar-tree__link" data-step="0"><span class="sidebar-tree__num">—</span> All commands</a></li>
         <li class="sidebar-tree__item"><a href="#prereqs" class="sidebar-tree__link" data-step="1"><span class="sidebar-tree__num">1</span> Prerequisites</a></li>
         <li class="sidebar-tree__item"><a href="#step-start" class="sidebar-tree__link" data-step="2"><span class="sidebar-tree__num">2</span> Start platform</a></li>
@@ -160,12 +161,16 @@ npm install</code></pre>
           <div class="code-block__header"><span>Load aliases</span><button class="btn-copy" data-copy="cmd-quickstart-aliases">Copy</button></div>
           <pre><code id="cmd-quickstart-aliases"># From repo root (or add to ~/.zshrc with full path)
 source scripts/demo-aliases.sh
+demo-help
 
-demo-up              # npm run demo:up
-demo-down            # npm run demo:down
-demo-o11y-on         # enable Splunk export
-demo-o11y-off        # disable Splunk export
-demo-traffic         # generate traffic</code></pre>
+demo-run               # full stack + API + RUM traffic
+demo-up                # start full stack
+demo-down              # teardown
+demo-traffic           # API + RUM (APM + linked browser sessions)
+demo-traffic-api       # API only
+demo-traffic-rum       # browser RUM only
+demo-o11y-on           # enable Splunk export
+demo-o11y-off          # disable Splunk export</code></pre>
         </div>
 
         <h3>Stop everything</h3>
@@ -175,7 +180,7 @@ demo-traffic         # generate traffic</code></pre>
 # Or stop Minikube VM too:
 bash scripts/demo-teardown.sh full --stop-minikube</code></pre>
         </div>
-        <p>See <a href="#o11y-filters">O11y UI filters</a> for APM, RUM, Metric Explorer, and Dashboard tags. Manual steps: <a href="#commands">All commands</a>.</p>
+        <p>See <a href="#o11y-filters">O11y UI filters</a> for APM, RUM, Metric Explorer, and Dashboard tags. After the stack is up, verify the collector in <a href="#fleet-management">Fleet Management</a>. Manual steps: <a href="#commands">All commands</a>.</p>
       </section>
 
       <section>
@@ -473,6 +478,137 @@ bash scripts/demo-teardown.sh full --stop-minikube</code></pre>
         </table>
       </section>
 
+      <section id="fleet-management">
+        <h2>OpenTelemetry Fleet Management — collector inventory</h2>
+        <p>
+          This demo ships the <strong>Splunk Distribution of the OpenTelemetry Collector</strong>
+          (<code>quay.io/signalfx/splunk-otel-collector:0.154.2</code>) with the
+          <strong>OpAMP</strong> extension enabled. That enrolls the gateway collector in
+          Splunk Observability Cloud <strong>Fleet Management</strong> so you can see health,
+          version, and effective config without SSH or <code>kubectl</code>.
+        </p>
+
+        <div class="callout callout--concept">
+          <p class="callout__title">Data plane vs management plane</p>
+          <div class="callout__body">
+            <p><strong>Data plane</strong> — microservices send OTLP to the collector; it exports traces, metrics, and logs (APM, Metric Explorer, Log Observer).</p>
+            <p><strong>Management plane</strong> — the collector registers over OpAMP so it appears in Fleet Management. APM can work without Fleet; Fleet answers “is my collector enrolled and healthy?”</p>
+          </div>
+        </div>
+
+        <h3>Prerequisites</h3>
+        <ul class="checklist">
+          <li>Real <strong>ingest token</strong> in <code>.env.splunk</code> (same token used for trace/metric export)</li>
+          <li><code>SPLUNK_OPAMP_URL</code> set — defaults to <code>${SPLUNK_INGEST_URL}/v1/opamp</code> (see <code>.env.splunk.example</code>)</li>
+          <li>Collector restarted after changing Splunk secrets</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-block__header"><span>Apply secrets &amp; restart collector</span><button class="btn-copy" data-copy="cmd-fleet-restart">Copy</button></div>
+          <pre><code id="cmd-fleet-restart"># Docker Compose
+docker compose up -d --force-recreate otel-collector
+
+# Minikube
+bash scripts/k8s-create-secrets.sh
+kubectl -n banking rollout restart deploy/otel-collector
+kubectl -n banking rollout status deploy/otel-collector</code></pre>
+        </div>
+
+        <h3>Open Fleet Management in Splunk O11y</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li>Sign in to <strong>Splunk Observability Cloud</strong></li>
+            <li>Go to <strong>Settings</strong> (gear) → <strong>OpenTelemetry</strong> → <strong>Fleet Management</strong>
+              <span class="muted"> — menu label may also appear as “Manage OpenTelemetry agents and collectors”</span></li>
+            <li>Wait <strong>1–2 minutes</strong> after collector restart for enrollment</li>
+            <li>Filter or search for collectors with environment <code>banking-app</code> (or your <code>DEPLOYMENT_ENVIRONMENT</code> value)</li>
+          </ol>
+        </article>
+
+        <h3>What you should see for this demo</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>Fleet field</th><th>Expected value</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Client type</strong></td>
+              <td>OpenTelemetry Collector (gateway)</td>
+              <td><code>otelcol.service.mode: gateway</code> in collector telemetry resource</td>
+            </tr>
+            <tr>
+              <td><strong>Environment</strong></td>
+              <td><code>banking-app</code></td>
+              <td>Attribute <code>deployment.environment.name</code> on the collector</td>
+            </tr>
+            <tr>
+              <td><strong>Version</strong></td>
+              <td><code>0.154.x</code></td>
+              <td>Splunk OTel Collector image tag</td>
+            </tr>
+            <tr>
+              <td><strong>Health</strong></td>
+              <td>Connected / healthy</td>
+              <td>OpAMP polling every 30s</td>
+            </tr>
+            <tr>
+              <td><strong>Demo tag</strong></td>
+              <td><code>demo.name: banking-platform</code></td>
+              <td>Optional filter in Fleet inventory</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Basic Fleet Management tasks (workshop lab)</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li><strong>Inventory</strong> — confirm one gateway collector is listed after <code>npm run demo:up</code></li>
+            <li><strong>Health</strong> — open the collector row; status should stay connected while the pod/container runs</li>
+            <li><strong>Effective configuration</strong> — view the running config reported over OpAMP (pipelines: traces → OTLP HTTP, metrics → SignalFx, logs → Log Observer HEC)</li>
+            <li><strong>Correlate with data</strong> — generate <code>npm run traffic</code>, then verify APM service map <em>and</em> Fleet still shows healthy (data + management both working)</li>
+            <li><strong>Restart drill</strong> — <code>kubectl -n banking rollout restart deploy/otel-collector</code> (or Docker recreate); watch Fleet briefly reconnect</li>
+          </ol>
+        </article>
+
+        <div class="callout callout--tip">
+          <p class="callout__title">Language agents (optional)</p>
+          <div class="callout__body">
+            <p>This demo uses the <strong>Node.js OTel SDK</strong> in each microservice (OTLP only) — those SDKs do <em>not</em> appear in Fleet unless you switch to the Splunk Node agent with <code>SPLUNK_OPAMP_ENABLED=true</code>. Fleet Management here focuses on the <strong>central gateway collector</strong>, which is the typical Kubernetes/Docker pattern.</p>
+          </div>
+        </div>
+
+        <h3>Troubleshooting Fleet enrollment</h3>
+        <table class="info-table">
+          <thead>
+            <tr><th>Symptom</th><th>Fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Collector missing from Fleet</td>
+              <td>Ensure image is <code>quay.io/signalfx/splunk-otel-collector</code> (not upstream <code>otel/opentelemetry-collector-contrib</code>) and OpAMP is in <code>collector/otelcol-config.yaml</code></td>
+            </tr>
+            <tr>
+              <td>APM works, Fleet empty</td>
+              <td>Data export and OpAMP are separate — check <code>SPLUNK_OPAMP_URL</code> and ingest token; try <code>https://ingest.&lt;realm&gt;.observability.splunkcloud.com/v1/opamp</code></td>
+            </tr>
+            <tr>
+              <td>OpAMP errors in logs</td>
+              <td><code>kubectl -n banking logs deploy/otel-collector --since=5m | grep -i opamp</code> — look for 401 (bad token) or 404 (wrong URL/realm)</td>
+            </tr>
+            <tr>
+              <td>Wrong environment in Fleet</td>
+              <td>Match <code>DEPLOYMENT_ENVIRONMENT</code> in Docker Compose / k8s; default Docker value is <code>banking-app</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="muted">
+          Splunk docs:
+          <a href="https://help.splunk.com/en/splunk-observability-cloud/manage-data/manage-otel-agents-and-collectors/manage-opentelemetry-agents-and-collectors/set-up-opentelemetry-fleet-management" target="_blank" rel="noopener">Set up OpenTelemetry Fleet Management</a>,
+          <a href="https://help.splunk.com/en/splunk-observability-cloud/manage-data/manage-otel-agents-and-collectors/manage-opentelemetry-agents-and-collectors-in-ui" target="_blank" rel="noopener">Fleet Management UI</a>.
+        </p>
+      </section>
+
       <section id="commands">
         <h2>All commands (cheat sheet)</h2>
         <div class="code-block">
@@ -501,7 +637,10 @@ npm run minikube:port-forward</code></pre>
         </div>
         <div class="code-block">
           <div class="code-block__header"><span>Traffic + flags</span><button class="btn-copy" data-copy="cmd-all-traffic">Copy</button></div>
-          <pre><code id="cmd-all-traffic">npm run traffic
+          <pre><code id="cmd-all-traffic">npm run demo:traffic           # API + RUM (recommended)
+npm run demo:traffic:api       # API only → APM
+npm run demo:traffic:rum       # browser → RUM + linked APM
+npm run demo:run               # demo:up + demo:traffic
 npm run flags -- list
 npm run flags -- enable fail_transaction_insert
 npm run flags -- disable fail_transaction_insert</code></pre>
@@ -700,7 +839,7 @@ npm run flags -- disable fail_transaction_insert</code></pre>
         <div class="code-block">
           <div class="code-block__header"><span>Terminal</span><button class="btn-copy" data-copy="cmd-5a">Copy</button></div>
           <pre><code id="cmd-5a">cp .env.splunk.example .env.splunk
-# Edit: SPLUNK_ACCESS_TOKEN, SPLUNK_RUM_ACCESS_TOKEN, SPLUNK_REALM</code></pre>
+# Edit: SPLUNK_ACCESS_TOKEN, SPLUNK_RUM_ACCESS_TOKEN, SPLUNK_REALM, SPLUNK_OPAMP_URL (optional)</code></pre>
         </div>
         <h3>2. Restart collector (Docker)</h3>
         <div class="code-block">
@@ -719,8 +858,10 @@ docker compose restart api-gateway transaction-service account-service</code></p
         <ul>
           <li><strong>Traces</strong> → <code>${SPLUNK_INGEST_URL}/v2/trace/otlp</code></li>
           <li><strong>Metrics</strong> → SignalFx exporter</li>
-          <li><strong>Logs</strong> → <code>${SPLUNK_INGEST_URL}/v1/log</code> (Log Observer)</li>
+          <li><strong>Logs</strong> → <code>${SPLUNK_LOG_INGEST_URL}</code> (Log Observer)</li>
+          <li><strong>Fleet Management</strong> → OpAMP at <code>${SPLUNK_OPAMP_URL}</code> (Splunk OTel Collector <code>0.154.2</code>)</li>
         </ul>
+        <p>After restart, verify enrollment in <a href="#fleet-management">Fleet Management</a> (Settings → OpenTelemetry → Fleet Management).</p>
       </section>
 
       <section id="step-o11y">
@@ -728,7 +869,18 @@ docker compose restart api-gateway transaction-service account-service</code></p
         <h2>Splunk Observability Cloud demo</h2>
         <p>Filter environment to <strong><code>banking-app</code></strong> in APM and RUM before exploring. See the full <a href="#o11y-filters">O11y UI filter guide</a> for Metric Explorer, Dashboards, RUM, and Log Observer tags.</p>
 
-        <h3>1. APM service map</h3>
+        <h3>1. Fleet Management (collector health)</h3>
+        <article class="ui-walkthrough">
+          <ol>
+            <li><strong>Settings → OpenTelemetry → Fleet Management</strong></li>
+            <li>Find the gateway collector — environment <code>banking-app</code>, mode <code>gateway</code></li>
+            <li>Confirm <strong>Connected</strong> after <code>demo:up</code> or collector restart</li>
+            <li>Open the collector → view <strong>effective configuration</strong> and version <code>0.154.x</code></li>
+          </ol>
+        </article>
+        <p>Full walkthrough: <a href="#fleet-management">Fleet Management guide</a>.</p>
+
+        <h3>2. APM service map</h3>
         <article class="ui-walkthrough">
           <ol>
             <li>Run <code>npm run traffic</code> or complete a UI transfer (not admin pages only)</li>
@@ -745,7 +897,7 @@ docker compose restart api-gateway transaction-service account-service</code></p
           </div>
         </div>
 
-        <h3>2. RUM → APM trace link</h3>
+        <h3>3. RUM → APM trace link</h3>
         <article class="ui-walkthrough">
           <ol>
             <li><strong>RUM</strong> → application <code>securebank-frontend</code>, environment <code>banking-app</code></li>
@@ -755,7 +907,7 @@ docker compose restart api-gateway transaction-service account-service</code></p
           </ol>
         </article>
 
-        <h3>3. Logs and failure demo</h3>
+        <h3>4. Logs and failure demo</h3>
         <article class="ui-walkthrough">
           <ol>
             <li>Trigger <code>fail_transaction_insert</code> from this page or Admin UI</li>
@@ -907,6 +1059,14 @@ kubectl -n banking logs deploy/otel-collector --since=5m | grep -i trace</code><
             <p>Admin-only traffic centers the map on <code>admin-service</code>. Use transfers for business topology.</p>
           </details>
           <details>
+            <summary>Collector not in Fleet Management</summary>
+            <p>Requires Splunk OTel Collector with OpAMP — not the upstream contrib image alone. Set <code>SPLUNK_OPAMP_URL</code> in <code>.env.splunk</code> and restart the collector. Wait 1–2 minutes.</p>
+            <pre><code>kubectl -n banking logs deploy/otel-collector --since=5m | grep -i opamp
+# Try alternate URL in .env.splunk:
+# SPLUNK_OPAMP_URL=https://ingest.us1.observability.splunkcloud.com/v1/opamp</code></pre>
+            <p>See <a href="#fleet-management">Fleet Management guide</a>.</p>
+          </details>
+          <details>
             <summary>No logs in Log Observer (404 on export)</summary>
             <p>Log Observer does not use a Platform index. Use ingest token; try <code>SPLUNK_LOG_INGEST_URL</code> in <code>.env.splunk</code>.</p>
             <pre><code>kubectl -n banking logs deploy/otel-collector --since=5m | grep -iE 'LogsExporter|404'</code></pre>
@@ -956,6 +1116,7 @@ minikube stop</code></pre>
           <li>Run SecureBank on Docker Compose or Minikube</li>
           <li>Explain logs, traces, metrics, and RUM for the demo</li>
           <li>Demo the APM service map with business traffic (transfer path)</li>
+          <li>Verify the OTel gateway collector in Fleet Management (OpAMP enrollment)</li>
           <li>Inject failures with feature flags and correlate ERROR logs + traces</li>
           <li>Describe how O11y detectors can feed ITSI notables and episodes</li>
           <li>Optional: configure an ITSI service linked to APM entities</li>

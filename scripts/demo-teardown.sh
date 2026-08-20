@@ -67,7 +67,7 @@ if [[ -z "$PROFILE" ]]; then
   PROFILE="${PROFILE:-full}"
 fi
 
-if [[ "$PROFILE" == "traffic" ]]; then
+if [[ "$PROFILE" == "traffic" || "$PROFILE" == "traffic-api" || "$PROFILE" == "traffic-rum" ]]; then
   echo "Traffic generator is one-shot — nothing to tear down."
   exit 0
 fi
